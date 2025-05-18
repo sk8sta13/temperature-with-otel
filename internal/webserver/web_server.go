@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/propagation"
@@ -100,7 +101,8 @@ func (s *WebServer) Start(ser string) {
 	s.Router.Use(middleware.Logger)
 	s.Router.Handle("/metrics", promhttp.Handler())
 	for _, h := range s.Handlers {
-		s.Router.Method(h.Method, h.Path, h.Func)
+		handler := otelhttp.NewHandler(h.Func, h.Path)
+		s.Router.Method(h.Method, h.Path, handler)
 	}
 
 	server := &http.Server{
