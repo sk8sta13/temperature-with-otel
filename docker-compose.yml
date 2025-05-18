@@ -1,0 +1,52 @@
+services:
+  jaeger-all-in-one:
+    image: jaegertracing/all-in-one:latest
+    restart: always
+    ports:
+      - "16686:16686"
+      - "14268"
+      - "14250"
+
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus:latest
+    restart: always
+    volumes:
+      - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+
+  otel-collector:
+    image: otel/opentelemetry-collector:0.93.0
+    restart: always
+    command: ["--config=/etc/otel-collector-config.yml"]
+    volumes:
+      - ./docker/otel-collector-config.yml:/etc/otel-collector-config.yml
+    ports:
+      - "8888:8888" # Prometheus metrics exposed by the collector
+      - "8889:8889" # Prometheus exporter metrics 
+      - "4317:4317" # OTLP gRPC receiver
+
+  api-b:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        FOLDER: api_b
+    container_name: api_b
+    ports:
+      - "8081:8080"
+    depends_on:
+      - otel-collector
+
+  api-a:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        FOLDER: api_a
+    container_name: api_a
+    ports:
+      - "8080:8080"
+    depends_on:
+      - otel-collector
