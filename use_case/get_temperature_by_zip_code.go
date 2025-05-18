@@ -11,6 +11,7 @@ import (
 
 	"github.com.br/sk8sta13/temperatures/internal/dto"
 	"github.com.br/sk8sta13/temperatures/internal/entity"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
 )
@@ -38,29 +39,6 @@ func Get(ctx context.Context, data *dto.ZipCode) (*dto.Temperature, error) {
 	return temperature, nil
 }
 
-/*
-	func getLocal(ctx context.Context, zipcode string) (*Address, error) {
-		resp, err := http.Get(fmt.Sprintf("http://viacep.com.br/ws/%s/json/", zipcode))
-		if err != nil {
-			log.Println(err.Error())
-			return nil, entity.ErrInternalServer
-		}
-		defer resp.Body.Close()
-
-		var a Address
-		err = json.NewDecoder(resp.Body).Decode(&a)
-		if err != nil {
-			log.Println(err.Error())
-			return nil, entity.ErrInternalServer
-		}
-
-		if a.City == "" {
-			return nil, entity.ErrCanNotFindZipcode
-		}
-
-		return &a, nil
-	}
-*/
 func getLocal(ctx context.Context, zipcode string) (*Address, error) {
 	url := fmt.Sprintf("http://viacep.com.br/ws/%s/json/", zipcode)
 
@@ -72,7 +50,9 @@ func getLocal(ctx context.Context, zipcode string) (*Address, error) {
 
 	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
 
-	client := &http.Client{}
+	client := http.Client{
+		Transport: otelhttp.NewTransport(http.DefaultTransport),
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Println(err.Error())
@@ -94,32 +74,6 @@ func getLocal(ctx context.Context, zipcode string) (*Address, error) {
 	return &a, nil
 }
 
-/*
-	func getTemperature(ctx context.Context, region *string) (*dto.Temperature, error) {
-		regionScape := url.QueryEscape(*region)
-		resp, err := http.Get(fmt.Sprintf("http://api.weatherapi.com/v1/current.json?q=%s&key=%s", regionScape, os.Getenv("WEATHER_API_KEY")))
-		if err != nil {
-			log.Println(err.Error())
-			return nil, entity.ErrInternalServer
-		}
-		defer resp.Body.Close()
-
-		var d struct {
-			Current dto.Temperature `json:"current"`
-		}
-
-		err = json.NewDecoder(resp.Body).Decode(&d)
-		if err != nil {
-			log.Println(err.Error())
-			return nil, entity.ErrInternalServer
-		}
-
-		d.Current.Temp_K = d.Current.Temp_C + 273.15
-		d.Current.City = *region
-
-		return &d.Current, nil
-	}
-*/
 func getTemperature(ctx context.Context, region *string) (*dto.Temperature, error) {
 	regionScape := url.QueryEscape(*region)
 	url := fmt.Sprintf("http://api.weatherapi.com/v1/current.json?q=%s&key=%s", regionScape, os.Getenv("WEATHER_API_KEY"))
@@ -132,7 +86,9 @@ func getTemperature(ctx context.Context, region *string) (*dto.Temperature, erro
 
 	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
 
-	client := &http.Client{}
+	client := http.Client{
+		Transport: otelhttp.NewTransport(http.DefaultTransport),
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Println(err.Error())

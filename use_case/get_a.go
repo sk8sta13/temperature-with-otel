@@ -9,27 +9,10 @@ import (
 
 	"github.com.br/sk8sta13/temperatures/internal/dto"
 	"github.com.br/sk8sta13/temperatures/internal/entity"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
 )
-
-/*func GetA(ctx context.Context, data *dto.ZipCode) (*dto.Temperature, error) {
-	resp, err := http.Get(fmt.Sprintf("http://api-b:8080?zipcode=%s", data.ZipCode))
-	if err != nil {
-		log.Println(err.Error())
-		return nil, entity.ErrInternalServer
-	}
-	defer resp.Body.Close()
-
-	var t dto.Temperature
-	err = json.NewDecoder(resp.Body).Decode(&t)
-	if err != nil {
-		log.Println(err.Error())
-		return nil, entity.ErrInternalServer
-	}
-
-	return &t, nil
-}*/
 
 func GetA(ctx context.Context, data *dto.ZipCode) (*dto.Temperature, error) {
 	url := fmt.Sprintf("http://api-b:8080?zipcode=%s", data.ZipCode)
@@ -42,7 +25,9 @@ func GetA(ctx context.Context, data *dto.ZipCode) (*dto.Temperature, error) {
 
 	otel.GetTextMapPropagator().Inject(ctx, propagation.HeaderCarrier(req.Header))
 
-	client := &http.Client{}
+	client := http.Client{
+		Transport: otelhttp.NewTransport(http.DefaultTransport),
+	}
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Println(err.Error())
