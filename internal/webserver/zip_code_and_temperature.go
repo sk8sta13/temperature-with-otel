@@ -8,11 +8,15 @@ import (
 	"github.com.br/sk8sta13/temperatures/internal/entity"
 	"github.com.br/sk8sta13/temperatures/internal/validators"
 	usecase "github.com.br/sk8sta13/temperatures/use_case"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
 )
 
 func (s *WebServer) ZipCodeAndTemperature(w http.ResponseWriter, r *http.Request) {
+	carrier := propagation.HeaderCarrier(r.Header)
 	ctx := r.Context()
-	ctx, span := s.TemplateData.OTELTracer.Start(ctx, "Chamada externa "+s.TemplateData.RequestNameOTEL)
+	ctx = otel.GetTextMapPropagator().Extract(ctx, carrier)
+	ctx, span := s.TemplateData.OTELTracer.Start(ctx, s.TemplateData.RequestNameOTEL+" chamada externa")
 	defer span.End()
 
 	var requestData dto.ZipCode

@@ -1,11 +1,9 @@
 services:
-  jaeger-all-in-one:
-    image: jaegertracing/all-in-one:latest
-    restart: always
+  zipkin:
+    image: openzipkin/zipkin
+    container_name: zipkin
     ports:
-      - "16686:16686"
-      - "14268"
-      - "14250"
+      - 9411:9411
 
   prometheus:
     container_name: prometheus
@@ -17,6 +15,7 @@ services:
       - "9090:9090"
 
   otel-collector:
+    container_name: otel-collector
     image: otel/opentelemetry-collector:0.93.0
     restart: always
     command: ["--config=/etc/otel-collector-config.yml"]
