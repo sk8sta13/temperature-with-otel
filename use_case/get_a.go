@@ -31,9 +31,13 @@ func GetA(ctx context.Context, data *dto.ZipCode) (*dto.Temperature, error) {
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Println(err.Error())
-		return nil, entity.ErrInternalServer
+		return nil, err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, entity.ErrCanNotFindZipcode
+	}
 
 	var t dto.Temperature
 	err = json.NewDecoder(resp.Body).Decode(&t)

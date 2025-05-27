@@ -41,7 +41,6 @@ func (s *WebServer) ZipCode(w http.ResponseWriter, r *http.Request) {
 	}
 
 	temperature, err := usecase.GetA(ctx, &requestData)
-	s.TemplateData.Content = temperature.City
 	if err != nil {
 		statusCode := http.StatusInternalServerError
 		if err == entity.ErrCanNotFindZipcode {
@@ -50,6 +49,8 @@ func (s *WebServer) ZipCode(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), statusCode)
 		return
 	}
+
+	s.TemplateData.Content = temperature.City
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(temperature); err != nil {
